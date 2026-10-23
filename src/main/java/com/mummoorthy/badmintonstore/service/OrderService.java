@@ -14,17 +14,17 @@ public interface OrderService {
     
     List<Order> getOrdersByStatus(String status);
     
-    List<Order> getOrdersByCustomer(Long customerId);
+    List<OrderResponse> getOrdersByCustomer(Long customerId);
 
     Order updateOrderStatus(Long orderId, String status);
 
-    Order getOrderById(Long id);
+    OrderResponse getOrderById(Long id);
 
     Order saveOrder(Order order);
 
     Order updateOrder(Long id, Order order);
     
-    
+    Order cancelOrder(Long id);
 
     void deleteOrder(Long id);
     

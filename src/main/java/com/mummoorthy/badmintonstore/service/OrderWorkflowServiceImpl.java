@@ -100,6 +100,8 @@ public class OrderWorkflowServiceImpl implements OrderWorkflowService {
 
      addressRepository.save(address);
      
+     
+     
   // ==============================
   // STEP 5 - Create Order
   // ==============================
@@ -107,6 +109,8 @@ public class OrderWorkflowServiceImpl implements OrderWorkflowService {
   Order order = new Order();
 
   order.setCustomer(customer);
+  
+  order.setShippingAddress(address);
 
   order.setOrderNumber(
           "MMB-" + System.currentTimeMillis());
@@ -125,40 +129,37 @@ double totalAmount = 0;
 
 for (CartItem cartItem : cartItems) {
 
-   ProductVariant variant = cartItem.getProductVariant();
+    ProductVariant variant = cartItem.getProductVariant();
 
-   // Check stock
-   if (variant.getStock() < cartItem.getQuantity()) {
+    if (variant.getStock() < cartItem.getQuantity()) {
 
-       throw new RuntimeException(
-               variant.getProduct().getName()
-               + " is out of stock.");
-   }
+        throw new RuntimeException(
+            variant.getProduct().getName()
+            + " has only "
+            + variant.getStock()
+            + " item(s) available. You requested "
+            + cartItem.getQuantity() + "."
+        );
+    }
+    OrderItem orderItem = new OrderItem();
 
-   OrderItem orderItem = new OrderItem();
+    orderItem.setOrder(order);
+    orderItem.setProductVariant(variant);
+    orderItem.setQuantity(cartItem.getQuantity());
+    orderItem.setPrice(variant.getSellingPrice());
 
-   orderItem.setOrder(order);
+    orderItemRepository.save(orderItem);
 
-   orderItem.setProductVariant(variant);
+    variant.setStock(
+            variant.getStock() - cartItem.getQuantity()
+    );
 
-   orderItem.setQuantity(cartItem.getQuantity());
+    productVariantRepository.save(variant);
 
-   orderItem.setPrice(variant.getSellingPrice());
+    totalAmount +=
+            variant.getSellingPrice() * cartItem.getQuantity();
 
-   orderItemRepository.save(orderItem);
-
-   // Calculate Total
-   totalAmount +=
-           variant.getSellingPrice()
-           * cartItem.getQuantity();
-
-   // Reduce Stock
-   variant.setStock(
-           variant.getStock()
-           - cartItem.getQuantity());
-
-   productVariantRepository.save(variant);
-
+    
 }
 //==============================
 //STEP 7 - Update Total Amount

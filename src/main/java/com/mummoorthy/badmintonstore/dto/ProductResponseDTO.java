@@ -45,8 +45,54 @@ public class ProductResponseDTO {
     private Double rating;
 
     private Integer reviews;
+    
+    private String weight;
+    private String flexibility;
+    private String playingLevel;
+    private String balance;
+    private String frameMaterial;
 
-    public Double getMrp() {
+    public String getWeight() {
+		return weight;
+	}
+
+	public void setWeight(String weight) {
+		this.weight = weight;
+	}
+
+	public String getFlexibility() {
+		return flexibility;
+	}
+
+	public void setFlexibility(String flexibility) {
+		this.flexibility = flexibility;
+	}
+
+	public String getPlayingLevel() {
+		return playingLevel;
+	}
+
+	public void setPlayingLevel(String playingLevel) {
+		this.playingLevel = playingLevel;
+	}
+
+	public String getBalance() {
+		return balance;
+	}
+
+	public void setBalance(String balance) {
+		this.balance = balance;
+	}
+
+	public String getFrameMaterial() {
+		return frameMaterial;
+	}
+
+	public void setFrameMaterial(String frameMaterial) {
+		this.frameMaterial = frameMaterial;
+	}
+
+	public Double getMrp() {
 		return mrp;
 	}
 

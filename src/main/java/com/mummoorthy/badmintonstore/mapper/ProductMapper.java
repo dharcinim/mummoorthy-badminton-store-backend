@@ -62,6 +62,12 @@ public class ProductMapper {
             dto.setMrp(variant.getMrp());
             dto.setSellingPrice(variant.getSellingPrice());
             dto.setStock(variant.getStock());
+            
+            dto.setWeight(variant.getWeight());
+            dto.setFlexibility(variant.getFlexibility());
+            dto.setPlayingLevel(variant.getPlayingLevel());
+            dto.setBalance(variant.getBalance());
+            dto.setFrameMaterial(variant.getFrameMaterial());
         }
 
         // Primary Image

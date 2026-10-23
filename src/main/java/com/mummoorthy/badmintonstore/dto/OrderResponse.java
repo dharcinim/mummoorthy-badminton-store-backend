@@ -1,8 +1,11 @@
 package com.mummoorthy.badmintonstore.dto;
+import com.mummoorthy.badmintonstore.entity.Customer;
+
+
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+import com.mummoorthy.badmintonstore.entity.Address;
 public class OrderResponse {
 
     private Long orderId;
@@ -11,7 +14,19 @@ public class OrderResponse {
     private String status;
     private LocalDateTime orderDate;
     private String paymentMethod;
-    private List<OrderItemDTO> orderItems;
+    private Customer customer;
+    private ShippingAddressDTO shippingAddress;
+    
+    
+    
+    
+	public ShippingAddressDTO getShippingAddress() {
+		return shippingAddress;
+	}
+	public void setShippingAddress(ShippingAddressDTO shippingAddress) {
+		this.shippingAddress = shippingAddress;
+	}
+	private List<OrderItemDTO> orderItems;
 	public Long getOrderId() {
 		return orderId;
 	}
@@ -53,6 +68,12 @@ public class OrderResponse {
 	}
 	public void setOrderItems(List<OrderItemDTO> orderItems) {
 		this.orderItems = orderItems;
+	}
+	public Customer getCustomer() {
+		return customer;
+	}
+	public void setCustomer(Customer customer) {
+		this.customer = customer;
 	}
 
     // Getters & Setters

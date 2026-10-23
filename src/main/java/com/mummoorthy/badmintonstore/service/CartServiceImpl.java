@@ -132,6 +132,14 @@ public class CartServiceImpl implements CartService {
         CartItem item = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new RuntimeException("Cart Item not found"));
 
+        ProductVariant variant = item.getProductVariant();
+
+        if (quantity > variant.getStock()) {
+            throw new RuntimeException(
+            		"Maximum available stock reached."
+            );
+        }
+
         item.setQuantity(quantity);
 
         return cartItemRepository.save(item);
@@ -181,14 +189,30 @@ public class CartServiceImpl implements CartService {
                         cart.getId(),
                         productVariantId);
 
+        
         if (existingItem.isPresent()) {
 
             CartItem item = existingItem.get();
-            item.setQuantity(item.getQuantity() + quantity);
+
+            int requestedQuantity = item.getQuantity() + quantity;
+
+            if (requestedQuantity > productVariant.getStock()) {
+                throw new RuntimeException(
+                		 "Maximum available stock reached."
+                );
+            }
+
+            item.setQuantity(requestedQuantity);
 
             cartItemRepository.save(item);
 
         } else {
+
+            if (quantity > productVariant.getStock()) {
+                throw new RuntimeException(
+                		 "Maximum available stock reached."
+                );
+            }
 
             CartItem item = new CartItem();
             item.setCart(cart);
@@ -197,7 +221,9 @@ public class CartServiceImpl implements CartService {
 
             cartItemRepository.save(item);
         }
-
+        
+        
+        
         return cart;
     }
 }

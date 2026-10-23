@@ -10,6 +10,9 @@ import com.mummoorthy.badmintonstore.repository.SubCategoryRepository;
 import com.mummoorthy.badmintonstore.repository.ProductRepository;
 import com.mummoorthy.badmintonstore.repository.ProductVariantRepository;
 import com.mummoorthy.badmintonstore.repository.ProductImageRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,7 +55,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 	        try {
 
 	            InputStream inputStream =
-	                    getClass().getResourceAsStream("/excel/Master_catalog (2).xlsx");
+	                    getClass().getResourceAsStream("/excel/Master_catalog_(6.6).xlsx");
 
 	            if (inputStream == null) {
 	                return "Excel file not found!";
@@ -137,6 +140,9 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 	         // ===================== PRODUCTS =====================
 
 	            Sheet productSheet = workbook.getSheet("Products");
+	            
+	         // Excel Product ID -> Actual Database Product ID
+	            Map<Long, Long> productIdMap = new HashMap<>();
 
 	            System.out.println();
 	            System.out.println("=================================");
@@ -149,47 +155,102 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 	                    continue;
 	                }
 
-	                // Read only first 6 products
-	                if (row.getRowNum() > 6) {
-	                    break;
-	                }
+	                
+	                Long excelProductId =
+	                        (long) row.getCell(0).getNumericCellValue();
 
-	                String sku = row.getCell(1).getStringCellValue().trim();
-	                String brandName = row.getCell(2).getStringCellValue().trim();
-	                String categoryName = row.getCell(3).getStringCellValue().trim();
-	                String productName = row.getCell(4).getStringCellValue().trim();
-	                String status = row.getCell(5).getStringCellValue().trim();
-	                String shortDescription = row.getCell(6).getStringCellValue().trim();
-	                double mrp = row.getCell(7).getNumericCellValue();
-	                double sellingPrice = row.getCell(8).getNumericCellValue();
+	               
+	                
+	                String sku =
+	                        row.getCell(1).getStringCellValue().trim();
 
-	                Brand brand = brandRepository.findByName(brandName).orElse(null);
-	                Category category = categoryRepository.findByName(categoryName).orElse(null);
+	                String brandName =
+	                        row.getCell(2).getStringCellValue().trim();
+
+	                String categoryName =
+	                        row.getCell(3).getStringCellValue().trim();
+
+	                String productName =
+	                        row.getCell(4).getStringCellValue().trim();
+
+	                String status =
+	                        row.getCell(5).getStringCellValue().trim();
+
+	                String shortDescription =
+	                        row.getCell(6).getStringCellValue().trim();
+
+	                double mrp =
+	                        row.getCell(7).getNumericCellValue();
+
+	                double sellingPrice =
+	                        row.getCell(8).getNumericCellValue();
+
+	                Brand brand =
+	                        brandRepository.findByName(brandName).orElse(null);
+
+	                Category category =
+	                        categoryRepository.findByName(categoryName).orElse(null);
 
 	                if (brand == null || category == null) {
-	                    System.out.println("Brand or Category not found for : " + productName);
+
+	                    System.out.println(
+	                            "Brand or Category not found for : "
+	                                    + productName
+	                    );
+
 	                    continue;
 	                }
 
-	                if (productRepository.findByName(productName).isPresent()) {
-	                    System.out.println("Product already exists : " + productName);
-	                    continue;
+	                // Check whether product already exists
+	                Product product =
+	                        productRepository.findByName(productName).orElse(null);
+
+	                if (product != null) {
+
+	                    System.out.println(
+	                            "Product already exists : "
+	                                    + productName
+	                                    + " | DB ID : "
+	                                    + product.getId()
+	                    );
+
+	                } else {
+
+	                    product = new Product();
+
+	                    product.setName(productName);
+	                    product.setSlug(sku.toLowerCase());
+	                    product.setShortDescription(shortDescription);
+	                    product.setBrand(brand);
+	                    product.setCategory(category);
+	                    product.setActive(
+	                            status.equalsIgnoreCase("Active")
+	                    );
+
+	                    product = productRepository.save(product);
+
+	                    System.out.println(
+	                            "Saved Product : "
+	                                    + productName
+	                                    + " | DB ID : "
+	                                    + product.getId()
+	                    );
 	                }
 
-	                Product product = new Product();
+	                // VERY IMPORTANT
+	                // Store Excel ID -> Database ID
+	                productIdMap.put(
+	                        excelProductId,
+	                        product.getId()
+	                );
 
-	                product.setName(productName);
-	                product.setSlug(sku.toLowerCase());
-	                product.setShortDescription(shortDescription);
-	                product.setBrand(brand);
-	                product.setCategory(category);
-	                product.setActive(status.equalsIgnoreCase("Active"));
-
-	                productRepository.save(product);
-
-	                System.out.println("Saved Product : " + productName);
-	            }    
-	            
+	                System.out.println(
+	                        "Product Mapping : Excel ID "
+	                                + excelProductId
+	                                + " -> DB ID "
+	                                + product.getId()
+	                );
+	            }
 	            Sheet variantSheet = workbook.getSheet("Product Variants");
 
 	            System.out.println();
@@ -203,138 +264,421 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 	                    continue;
 	                }
 
-	                if (row.getRowNum() > 9) {
-	                    break;
-	                }
+	                Long excelProductId =
+	                        (long) row.getCell(1).getNumericCellValue();
 
-	                Long productId = (long) row.getCell(1).getNumericCellValue();
+	                String variantType =
+	                        row.getCell(2).getStringCellValue().trim();
 
-	                String variantType = row.getCell(2).getStringCellValue().trim();
-	                String variant = row.getCell(3).getStringCellValue().trim();
+	                String variant =
+	                        row.getCell(3).getStringCellValue().trim();
 
-	                Double mrp = row.getCell(4).getNumericCellValue();
-	                Double sellingPrice = row.getCell(5).getNumericCellValue();
+	                Double mrp =
+	                        row.getCell(4).getNumericCellValue();
 
-	                String color = row.getCell(6).getStringCellValue().trim();
+	                Double sellingPrice =
+	                        row.getCell(5).getNumericCellValue();
 
-	                Integer stock = (int) row.getCell(7).getNumericCellValue();
+	                String color =
+	                        row.getCell(6).getStringCellValue().trim();
+
+	                Integer stock =
+	                        (int) row.getCell(7).getNumericCellValue();
 
 	                String weight = "";
+
 	                if (row.getCell(8) != null) {
-	                    weight = row.getCell(8).getStringCellValue().trim();
+
+	                    Cell weightCell = row.getCell(8);
+
+	                    if (weightCell.getCellType()
+	                            == org.apache.poi.ss.usermodel.CellType.STRING) {
+
+	                        weight =
+	                                weightCell.getStringCellValue().trim();
+
+	                    } else if (weightCell.getCellType()
+	                            == org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+
+	                        weight =
+	                                String.valueOf(
+	                                        weightCell.getNumericCellValue()
+	                                );
+	                    }
 	                }
-	                
+
 	                String gripSize = "";
 
 	                if (row.getCell(9) != null) {
-	                    gripSize = row.getCell(9).getStringCellValue().trim();
+
+	                    Cell gripCell = row.getCell(9);
+
+	                    if (gripCell.getCellType()
+	                            == org.apache.poi.ss.usermodel.CellType.STRING) {
+
+	                        gripSize =
+	                                gripCell.getStringCellValue().trim();
+
+	                    } else if (gripCell.getCellType()
+	                            == org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+
+	                        gripSize =
+	                                String.valueOf(
+	                                        gripCell.getNumericCellValue()
+	                                );
+	                    }
 	                }
-	               
 
+	                Long dbProductId =
+	                        productIdMap.get(excelProductId);
 
-	         
-	                Product product = productRepository.findById(productId).orElse(null);
+	                if (dbProductId == null) {
+
+	                    System.out.println(
+	                            "Product mapping not found for Excel ID : "
+	                                    + excelProductId
+	                    );
+
+	                    continue;
+	                }
+
+	                Product product =
+	                        productRepository.findById(dbProductId).orElse(null);
 
 	                if (product == null) {
-	                    System.out.println("Product not found : " + productId);
+
+	                    System.out.println(
+	                            "Product not found : " + dbProductId
+	                    );
+
 	                    continue;
 	                }
 
-	                String sku = product.getSlug()
-	                        + "-"
-	                        + variant.toLowerCase().replace(" ", "-")
-	                        + "-"
-	                        + color.toLowerCase().replace("/", "-").replace(" ", "-");
-	                
-	                if (productVariantRepository.findBySku(sku).isPresent()) {
-	                    System.out.println("Variant already exists : " + sku);
+	                String sku =
+	                        product.getSlug()
+	                                + "-"
+	                                + variant.toLowerCase()
+	                                .replace(" ", "-")
+	                                + "-"
+	                                + color.toLowerCase()
+	                                .replace("/", "-")
+	                                .replace(" ", "-");
+
+	                if (productVariantRepository
+	                        .findBySku(sku)
+	                        .isPresent()) {
+
+	                    System.out.println(
+	                            "Variant already exists : " + sku
+	                    );
+
 	                    continue;
 	                }
-	                
-	                
-	                
-		               ProductVariant productVariant = new ProductVariant();
-		                
-		                productVariant.setProduct(product);
-		                productVariant.setSku(sku);
-		                productVariant.setMrp(mrp);
-		                productVariant.setSellingPrice(sellingPrice);
-		                productVariant.setStock(stock);
-		                productVariant.setColor(color);
-		                productVariant.setWeight(weight);
-		                productVariant.setGripSize(gripSize);
-		                productVariant.setActive(true);
-	                
-	               productVariantRepository.save(productVariant);
-	               System.out.println("Saved Variant : " + sku);
 
-	                
+	                ProductVariant productVariant =
+	                        new ProductVariant();
 
-	                System.out.println("-----------------------------");
-	                System.out.println("Product ID : " + productId);
-	                System.out.println("Variant Type : " + variantType);
-	                System.out.println("Variant : " + variant);
-	                System.out.println("MRP : " + mrp);
-	                System.out.println("Selling Price : " + sellingPrice);
-	                System.out.println("Color : " + color);
-	                System.out.println("Stock : " + stock);
-	                System.out.println("Weight : " + weight);
-	                System.out.println("Grip Size : " + gripSize);
+	                productVariant.setProduct(product);
+	                productVariant.setSku(sku);
+	                productVariant.setMrp(mrp);
+	                productVariant.setSellingPrice(sellingPrice);
+	                productVariant.setStock(stock);
+	                productVariant.setColor(color);
+	                productVariant.setWeight(weight);
+	                productVariant.setSize(variant);
+	                productVariant.setGripSize(gripSize);
+	                productVariant.setActive(true);
+
+	                productVariantRepository.save(productVariant);
+
+	                System.out.println(
+	                        "Saved Variant : " + sku
+	                );
 	            }
 
-	                
-	            Sheet imageSheet = workbook.getSheet("Product Images");
+
+				// ===================== PRODUCT IMAGES =====================
+
+				Sheet imageSheet = workbook.getSheet("Product Images");
+
+				System.out.println();
+				System.out.println("=================================");
+				System.out.println("Sheet Name : " + imageSheet.getSheetName());
+				System.out.println("=================================");
+
+				for (Row row : imageSheet) {
+
+					if (row.getRowNum() == 0) {
+						continue;
+					}
+
+					try {
+
+						// Excel Product ID
+						Long excelProductId =
+								(long) row.getCell(0).getNumericCellValue();
+
+						// Image file name
+						String imageName = "";
+
+						if (row.getCell(1) != null) {
+							imageName =
+									row.getCell(1).toString().trim();
+						}
+
+						// Primary
+						String primary = "";
+
+						if (row.getCell(2) != null) {
+							primary =
+									row.getCell(2).toString().trim();
+						}
+
+						// Display order
+						Integer displayOrder = 1;
+
+						if (row.getCell(3) != null) {
+
+							if (row.getCell(3).getCellType()
+									== org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+
+								displayOrder =
+										(int) row.getCell(3).getNumericCellValue();
+							}
+						}
+
+						// =====================================================
+						// IMAGE URL COLUMN
+						// Column E = Image URL
+						// =====================================================
+
+						String imageUrl = "";
+
+						if (row.getCell(4) != null) {
+
+							imageUrl =
+									row.getCell(4).toString().trim();
+						}
+
+						// =====================================================
+						// FALLBACK FOR NORMAL IMAGE FILES
+						// =====================================================
+
+						if (imageUrl.isEmpty()) {
+
+							String lowerName =
+									imageName.toLowerCase();
+
+							if (lowerName.endsWith(".jpg")
+									|| lowerName.endsWith(".jpeg")
+									|| lowerName.endsWith(".png")
+									|| lowerName.endsWith(".webp")) {
+
+								imageUrl =
+										CLOUDINARY_BASE_URL + imageName;
+
+							} else {
+
+								System.out.println(
+										"Skipping MHTML image because no Image URL was provided : "
+												+ imageName
+								);
+
+								continue;
+							}
+						}
+
+						// =====================================================
+						// EXCEL PRODUCT ID -> DATABASE PRODUCT ID
+						// =====================================================
+
+						Long dbProductId =
+								productIdMap.get(excelProductId);
+
+						if (dbProductId == null) {
+
+							System.out.println(
+									"Image product mapping not found for Excel ID : "
+											+ excelProductId
+							);
+
+							continue;
+						}
+
+						Product product =
+								productRepository
+										.findById(dbProductId)
+										.orElse(null);
+
+						if (product == null) {
+
+							System.out.println(
+									"Product not found for DB ID : "
+											+ dbProductId
+							);
+
+							continue;
+						}
+
+						// =====================================================
+						// CHECK DUPLICATE
+						// =====================================================
+
+						if (productImageRepository
+								.existsByProductAndImageUrl(
+										product,
+										imageUrl)) {
+
+							System.out.println(
+									"Image already exists : "
+											+ imageUrl
+							);
+
+							continue;
+						}
+
+						// =====================================================
+						// SAVE IMAGE
+						// =====================================================
+
+						ProductImage productImage =
+								new ProductImage();
+
+						productImage.setProduct(product);
+
+						productImage.setImageUrl(imageUrl);
+
+						productImage.setAltText(
+								product.getName()
+						);
+
+						productImage.setDisplayOrder(
+								displayOrder
+						);
+
+						productImage.setPrimaryImage(
+								primary.equalsIgnoreCase("Yes")
+						);
+
+						productImageRepository.save(productImage);
+
+						System.out.println(
+								"Saved Image : "
+										+ imageName
+										+ " -> "
+										+ imageUrl
+										+ " -> "
+										+ product.getName()
+						);
+
+					} catch (Exception e) {
+
+						System.out.println(
+								"Image import error at row : "
+										+ row.getRowNum()
+						);
+
+						e.printStackTrace();
+					}
+				}
+	         // ===================== PRODUCT SPECIFICATIONS =====================
+
+	            Sheet specificationSheet = workbook.getSheet("Product Specifications");
 
 	            System.out.println();
 	            System.out.println("=================================");
-	            System.out.println("Sheet Name : " + imageSheet.getSheetName());
+	            System.out.println("Sheet Name : " + specificationSheet.getSheetName());
 	            System.out.println("=================================");
-
-	            for (Row row : imageSheet) {
+	            
+	            for (Row row : specificationSheet) {
 
 	                if (row.getRowNum() == 0) {
 	                    continue;
 	                }
 
-	                // For testing (remove later)
-	                if (row.getRowNum() > 30) {
-	                    break;
-	                }
+	                Long excelProductId =
+	                        (long) row.getCell(0).getNumericCellValue();
 
-	                Long productId = (long) row.getCell(0).getNumericCellValue();
+	                String specification =
+	                        row.getCell(1).getStringCellValue().trim();
 
-	                String imageName = row.getCell(1).getStringCellValue().trim();
+	                String value =
+	                        row.getCell(2).getStringCellValue().trim();
 
-	                String primary = row.getCell(2).getStringCellValue().trim();
+	                Long dbProductId =
+	                        productIdMap.get(excelProductId);
 
-	                Integer displayOrder = (int) row.getCell(3).getNumericCellValue();
+	                if (dbProductId == null) {
 
-	                Product product = productRepository.findById(productId).orElse(null);
+	                    System.out.println(
+	                            "Specification product mapping not found for Excel ID : "
+	                                    + excelProductId
+	                    );
 
-	                if (product == null) {
-	                    System.out.println("Product not found : " + productId);
 	                    continue;
 	                }
 
-	                ProductImage productImage = new ProductImage();
+	                Product product =
+	                        productRepository.findById(dbProductId).orElse(null);
 
-	                productImage.setProduct(product);
+	                if (product == null) {
 
+	                    System.out.println(
+	                            "Product not found for DB ID : "
+	                                    + dbProductId
+	                    );
+
+	                    continue;
+	                }
+
+	                if (product == null) {
+	                    System.out.println("Product not found : " + dbProductId);
+	                    continue;
+	                }
+
+	                List<ProductVariant> variants =
+	                        productVariantRepository.findByProductId(dbProductId);
+
+	                if (variants.isEmpty()) {
+	                	System.out.println("Variant not found : " + dbProductId);
+	                    continue;
+	                }
+	                
+	                System.out.println("Number of variants for Product " + dbProductId + " : " + variants.size());
+
+	                for (ProductVariant productVariant : variants) {
+	                	
+	                	System.out.println("Updating Variant ID : " + productVariant.getId()
+	                    + " | SKU : " + productVariant.getSku());
+	                
+	                switch (specification) 
+	                {
+
+		                case "Material":
+		                    productVariant.setFrameMaterial(value);
+		                    break;
+	
+		                case "Skill Level":
+		                    productVariant.setPlayingLevel(value);
+		                    break;
+	
+		                default:
+		                    continue;
+	               }
+	                
+	                
+	                
+	                productVariantRepository.save(productVariant);
+	                }
+	                System.out.println("Updated " + specification + " for Product DB ID : " + dbProductId);
+	                
 	                
 
-	                productImage.setImageUrl(CLOUDINARY_BASE_URL +imageName);
-
-	                productImage.setAltText(product.getName());
-
-	                productImage.setDisplayOrder(displayOrder);
-
-	                productImage.setPrimaryImage(primary.equalsIgnoreCase("Yes"));
-
-	                productImageRepository.save(productImage);
-
-	                System.out.println("Saved Image : " + imageName);
+	                System.out.println("--------------------------------");
+	                System.out.println("Product ID : " + dbProductId);
+	                System.out.println("Specification : " + specification);
+	                System.out.println("Value : " + value);
 	            }
-	            
 
 	            workbook.close();
 

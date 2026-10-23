@@ -17,7 +17,9 @@ public class ProductResponse {
     private Boolean featured;
     private Boolean bestSeller;
     private Boolean newArrival;
-
+    
+    
+   
     public ProductResponse() {
     }
 

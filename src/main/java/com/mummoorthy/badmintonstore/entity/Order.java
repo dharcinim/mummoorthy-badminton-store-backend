@@ -29,10 +29,22 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipping_address_id")
+    private Address shippingAddress;
 
     private LocalDateTime orderDate = LocalDateTime.now();
 
-    @Column(nullable = false)
+    public Address getShippingAddress() {
+		return shippingAddress;
+	}
+
+	public void setShippingAddress(Address shippingAddress) {
+		this.shippingAddress = shippingAddress;
+	}
+
+	@Column(nullable = false)
     private String status;
 
     @Column(nullable = false)
